@@ -1,20 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  xmlns:xlink="http://www.w3.org/1999/xlink"
-  width="0"
-  height="0"
->
-  <defs>
-    <symbol id="Test">
-      <use xlink:href="#test"></use>
-    </symbol>
-    <symbol id="Test copy">
-      <use xlink:href="#test"></use>
-    </symbol>
-    <symbol id="De"></symbol>
-    <symbol id="C"></symbol>
-    <symbol id="B"></symbol>
-    <symbol id="A"></symbol>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="0" height="0">
+<defs>
+<symbol id="Test">
+<use xlink:href="#test"></use>
+</symbol>
+<symbol id="Test copy">
+<use xlink:href="#test"></use>
+</symbol>
+<symbol id="De"></symbol>
+<symbol id="C"></symbol>
+<symbol id="B"></symbol>
+<symbol id="A"></symbol>
+</defs>
 </svg>
