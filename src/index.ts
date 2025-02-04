@@ -45,14 +45,7 @@ interface PluginProps {
    * @default no formatter
    * @example "biome"
    */
-  formatter?: Formatter;
-  /**
-   * The path to the formatter config file
-   * @default no path
-   * @example "./biome.json"
-   * @deprecated no need to provide a config path anymore
-   */
-  pathToFormatterConfig?: string;
+  formatter?: Formatter; 
   /**
    * The cwd, defaults to process.cwd()
    * @default process.cwd()
@@ -285,8 +278,7 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
       fileName,
       cwd,
       iconNameTransformer,
-      formatter,
-      pathToFormatterConfig,
+      formatter, 
     } = config;
     const iconGenerator = async () =>
       generateIcons({
@@ -298,9 +290,7 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
         iconNameTransformer,
         formatter,
       });
-    if (pathToFormatterConfig) {
-      console.warn('"pathToFormatterConfig" is deprecated, please remove it from your config');
-    }
+    
     const workDir = cwd ?? process.cwd();
     return {
       name: `icon-spritesheet-generator${i > 0 ? i.toString() : ""}`,
