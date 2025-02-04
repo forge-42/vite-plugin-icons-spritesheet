@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="50" height="50">
+    <!-- Body of the car -->
+    <path fill="blue" d="M8 31h48c2 0 3 1 3 3v5c0 1-1 2-2 2h-50c-1 0-2-1-2-2v-5c0-2 1-3 3-3z" />
+
+    <!-- Roof of the car -->
+    <path fill="red" d="M16 23l16-7 16 7v8h-32v-8z" />
+
+    <!-- Left wheel -->
+    <path fill="black" d="M18 48c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z" />
+
+    <!-- Right wheel -->
+    <path fill="black" d="M46 48c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z" />
+</svg>

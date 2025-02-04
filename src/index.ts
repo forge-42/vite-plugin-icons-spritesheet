@@ -4,9 +4,9 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { stderr } from "node:process";
 import { Readable } from "node:stream";
+import { DOMParser, DOMImplementation, MIME_TYPE, NAMESPACE, Node } from "@xmldom/xmldom";
 import chalk from "chalk";
 import { glob } from "glob";
-import { parse } from "node-html-parser";
 import { exec } from "tinyexec";
 import type { Plugin } from "vite";
 import { normalizePath } from "vite";
@@ -67,7 +67,7 @@ const generateIcons = async ({
   cwd,
   formatter,
   fileName = "sprite.svg",
-  iconNameTransformer,
+  iconNameTransformer = fileNameToCamelCase,
 }: PluginProps) => {
   const cwdToUse = cwd ?? process.cwd();
   const inputDirRelative = path.relative(cwdToUse, inputDir);
@@ -98,7 +98,7 @@ const generateIcons = async ({
 
     await mkdir(typesOutputDirRelative, { recursive: true });
     await generateTypes({
-      names: files.map((file: string) => transformIconName(file, iconNameTransformer ?? fileNameToCamelCase)),
+      names: files.map((file: string) => transformIconName(file, iconNameTransformer)),
       outputPath: path.join(typesOutputDir, typesFile),
       formatter,
     });
@@ -116,6 +116,44 @@ function fileNameToCamelCase(fileName: string): string {
   return capitalizedWords.join("");
 }
 
+const EXCLUDED_ATTRIBUTES = ["xmlns", "xmlns:xlink", "version", "width", "height"];
+const parser = new DOMParser();
+function parseSvg(input: string) {
+  try {
+    return parser.parseFromString(input, MIME_TYPE.XML_SVG_IMAGE);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+  }
+}
+
+async function createSvgSymbol(file: string, inputDir: string, iconNameTransformer: (fileName: string) => string) {
+  const fileName = transformIconName(file, iconNameTransformer);
+  const input = await fs.readFile(path.join(inputDir, file), "utf8");
+
+  const root = parseSvg(input);
+  if (!root || !root.ownerDocument) {
+    console.log(`⚠️ No SVG tag found in ${file}`);
+    return;
+  }
+  const svg = root.documentElement;
+  if (!svg) return;
+
+  const symbol = root.ownerDocument.createElementNS(NAMESPACE.SVG, "symbol");
+  symbol.setAttribute("id", fileName);
+
+  for (const node of svg.childNodes) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      symbol.appendChild(node);
+    }
+  }
+
+  for (const attr of svg.attributes) {
+    if (!EXCLUDED_ATTRIBUTES.includes(attr.name)) {
+      symbol.setAttribute(attr.name, attr.value);
+    }
+  }
+  return symbol;
+}
 /**
  * Creates a single SVG file that contains all the icons
  */
@@ -131,7 +169,7 @@ async function generateSvgSprite({
   inputDir: string;
   outputPath: string;
   outputDirRelative?: string;
-  iconNameTransformer?: (fileName: string) => string;
+  iconNameTransformer: (fileName: string) => string;
   /**
    * What formatter to use to format the generated files. Can be "biome" or "prettier"
    * @default no formatter
@@ -139,36 +177,23 @@ async function generateSvgSprite({
    */
   formatter?: Formatter;
 }) {
-  // Each SVG becomes a symbol and we wrap them all in a single SVG
-  const symbols = await Promise.all(
-    files.map(async (file) => {
-      const fileName = transformIconName(file, iconNameTransformer ?? fileNameToCamelCase);
-      const input = await fs.readFile(path.join(inputDir, file), "utf8");
+  // Each SVG becomes a symbol, and we wrap them all in a single SVG
+  const xmlDoc = new DOMImplementation().createDocument(NAMESPACE.SVG, "svg");
+  const defsElement = xmlDoc.createElementNS(NAMESPACE.SVG, "defs");
+  if (!xmlDoc.documentElement) throw new Error("documentElement is null");
+  xmlDoc.documentElement.setAttributeNS(NAMESPACE.XMLNS, "xmlns:xlink", "http://www.w3.org/1999/xlink");
+  xmlDoc.documentElement.setAttribute("width", "0");
+  xmlDoc.documentElement.setAttribute("height", "0");
+  xmlDoc.documentElement.appendChild(defsElement);
 
-      const root = parse(input);
-      const svg = root.querySelector("svg");
-      if (!svg) {
-        console.log(`⚠️ No SVG tag found in ${file}`);
-        return;
-      }
-      svg.tagName = "symbol";
-      svg.setAttribute("id", fileName);
-      svg.removeAttribute("xmlns");
-      svg.removeAttribute("xmlns:xlink");
-      svg.removeAttribute("version");
-      svg.removeAttribute("width");
-      svg.removeAttribute("height");
-      return svg.toString().trim();
-    })
-  );
-  const output = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="0" height="0">',
-    "<defs>", // for semantics: https://developer.mozilla.org/en-US/docs/Web/SVG/Element/defs
-    ...symbols.filter(Boolean),
-    "</defs>",
-    "</svg>",
-  ].join("\n");
+  for (const file of files) {
+    const symbol = await createSvgSymbol(file, inputDir, iconNameTransformer);
+    if (symbol) defsElement.appendChild(symbol);
+  }
+  // eslint-disable-next-line quotes
+  const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8"?>';
+  const xmlString = xmlDoc.toString();
+  const output = [xmlDeclaration, xmlString, ""].join("\n");
   const formattedOutput = await lintFileContent(output, formatter, "svg");
 
   return writeIfChanged(
