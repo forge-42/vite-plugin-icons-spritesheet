@@ -2,11 +2,12 @@
 import { promises as fs } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { Biome, Distribution } from "@biomejs/js-api";
+import { stderr } from "node:process";
+import { Readable } from "node:stream";
 import chalk from "chalk";
 import { glob } from "glob";
 import { parse } from "node-html-parser";
-import * as prettier from "prettier";
+import { exec } from "tinyexec";
 import type { Plugin } from "vite";
 import { normalizePath } from "vite";
 
@@ -49,6 +50,7 @@ interface PluginProps {
    * The path to the formatter config file
    * @default no path
    * @example "./biome.json"
+   * @deprecated no need to provide a config path anymore
    */
   pathToFormatterConfig?: string;
   /**
@@ -71,7 +73,6 @@ const generateIcons = async ({
   typesOutputFile = `${outputDir}/types.ts`,
   cwd,
   formatter,
-  pathToFormatterConfig,
   fileName = "sprite.svg",
   iconNameTransformer,
 }: PluginProps) => {
@@ -95,7 +96,6 @@ const generateIcons = async ({
     outputDirRelative,
     iconNameTransformer,
     formatter,
-    pathToFormatterConfig,
   });
 
   if (withTypes) {
@@ -108,7 +108,6 @@ const generateIcons = async ({
       names: files.map((file: string) => transformIconName(file, iconNameTransformer ?? fileNameToCamelCase)),
       outputPath: path.join(typesOutputDir, typesFile),
       formatter,
-      pathToFormatterConfig,
     });
   }
 };
@@ -133,7 +132,6 @@ async function generateSvgSprite({
   outputDirRelative,
   iconNameTransformer,
   formatter,
-  pathToFormatterConfig,
 }: {
   files: string[];
   inputDir: string;
@@ -146,12 +144,6 @@ async function generateSvgSprite({
    * @example "biome"
    */
   formatter?: Formatter;
-  /**
-   * The path to the formatter config file
-   * @default no path
-   * @example "./biome.json"
-   */
-  pathToFormatterConfig?: string;
 }) {
   // Each SVG becomes a symbol and we wrap them all in a single SVG
   const symbols = await Promise.all(
@@ -183,7 +175,7 @@ async function generateSvgSprite({
     "</defs>",
     "</svg>",
   ].join("\n");
-  const formattedOutput = await lintFileContent(output, formatter, pathToFormatterConfig, "svg");
+  const formattedOutput = await lintFileContent(output, formatter, "svg");
 
   return writeIfChanged(
     outputPath,
@@ -192,49 +184,48 @@ async function generateSvgSprite({
   );
 }
 
-async function tryReadFile(path: string): Promise<string | undefined> {
-  return fs.readFile(path, "utf8").catch(() => undefined);
-}
-
-function tryParseJson(json: string | undefined): Record<string, unknown> | undefined {
-  if (!json) {
-    return undefined;
-  }
-  try {
-    const data = JSON.parse(json);
-    return data;
-  } catch (e) {
-    return undefined;
-  }
-}
-
-async function lintFileContent(
-  fileContent: string,
-  formatter: Formatter | undefined,
-  pathToFormatterConfig: string | undefined,
-  typeOfFile: "ts" | "svg",
-) {
+async function lintFileContent(fileContent: string, formatter: Formatter | undefined, typeOfFile: "ts" | "svg") {
   if (!formatter) {
     return fileContent;
   }
-  const formatterConfig = pathToFormatterConfig ? await tryReadFile(pathToFormatterConfig) : undefined;
-  const formatterConfigJson = tryParseJson(formatterConfig);
   // TODO biome formatter for svg (atm it doesn't work)
-  if (formatter === "biome" && typeOfFile === "ts") {
-    const biome = await Biome.create({
-      distribution: Distribution.NODE,
-    });
-    if (formatterConfigJson) {
-      biome.applyConfiguration(formatterConfigJson);
-    }
-    return biome.formatContent(fileContent, {
-      filePath: "temp.ts",
-    }).content;
+  if (formatter === "biome" && typeOfFile === "svg") {
+    return fileContent;
   }
+  const prettierOptions = ["--parser", typeOfFile === "ts" ? "typescript" : "html"];
+  const biomeOptions = ["format", "--stdin-file-path", `file.${typeOfFile}`];
+  const options = formatter === "biome" ? biomeOptions : prettierOptions;
 
-  return prettier.format(fileContent, {
-    parser: typeOfFile === "ts" ? "typescript" : "html",
-    ...formatterConfigJson,
+  const stdinStream = new Readable();
+  stdinStream.push(fileContent);
+  stdinStream.push(null);
+
+  const { process } = exec(formatter, options, {});
+  if (!process?.stdin) {
+    console.error("no process");
+    return "";
+  }
+  stdinStream.pipe(process.stdin);
+  process.stderr?.pipe(stderr);
+  process.on("error", (error) => {
+    console.error(error);
+  });
+  const formattedContent = await new Promise<string>((resolve) => {
+    process.stdout?.on("data", (data) => {
+      resolve(data.toString());
+    });
+    process.stderr?.on("data", (data) => {
+      resolve(data.toString());
+    });
+  });
+  return new Promise<string>((resolve, reject) => {
+    process.on("exit", (code) => {
+      if (code === 0) {
+        resolve(formattedContent);
+      } else {
+        reject(new Error(`${formatter} failed`));
+      }
+    });
   });
 }
 
@@ -242,8 +233,7 @@ async function generateTypes({
   names,
   outputPath,
   formatter,
-  pathToFormatterConfig,
-}: { names: string[]; outputPath: string } & Pick<PluginProps, "formatter" | "pathToFormatterConfig">) {
+}: { names: string[]; outputPath: string } & Pick<PluginProps, "formatter">) {
   const output = [
     "// This file is generated by icon spritesheet generator",
     "",
@@ -255,7 +245,7 @@ async function generateTypes({
     "export type IconName = typeof iconNames[number]",
     "",
   ].join("\n");
-  const formattedOutput = await lintFileContent(output, formatter, pathToFormatterConfig, "ts");
+  const formattedOutput = await lintFileContent(output, formatter, "ts");
 
   const file = await writeIfChanged(
     outputPath,
@@ -308,8 +298,10 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
         fileName,
         iconNameTransformer,
         formatter,
-        pathToFormatterConfig,
       });
+    if (pathToFormatterConfig) {
+      console.warn('"pathToFormatterConfig" is deprecated, please remove it from your config');
+    }
     const workDir = cwd ?? process.cwd();
     return {
       name: `icon-spritesheet-generator${i > 0 ? i.toString() : ""}`,

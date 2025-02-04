@@ -67,12 +67,10 @@
   ],
   "homepage": "https://github.com/forge42dev/vite-plugin-icons-spritesheet#readme",
   "dependencies": {
-    "@biomejs/js-api": "^0.6.2",
-    "@biomejs/wasm-nodejs": "^1.8.3",
     "chalk": "^4.1.2",
     "glob": "^10.3.12",
     "node-html-parser": "^6.1.13",
-    "prettier": "^3.3.3"
+    "tinyexec": "^0.3.2"
   },
   "peerDependencies": {
     "vite": ">=5.2.0"

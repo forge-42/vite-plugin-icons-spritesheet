@@ -6,7 +6,6 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "tsc"
   },
@@ -21,10 +20,9 @@
   },
   "devDependencies": {
     "@react-router/dev": "^7.0.2",
+    "@biomejs/biome": "^1.9.4",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.23.0",
-    "@typescript-eslint/parser": "^8.23.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11",
     "vite-tsconfig-paths": "^5.1.4"
