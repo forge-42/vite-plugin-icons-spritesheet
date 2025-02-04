@@ -1,5 +1,5 @@
-import type { LinksFunction } from "@remix-run/node";
-import type { MetaFunction } from "@remix-run/node";
+import type { LinksFunction } from "react-router";
+import type { MetaFunction } from "react-router";
 // Import and test your package
 import sprite from "../icons/sprite.svg";
 
