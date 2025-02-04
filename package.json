@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-icons-spritesheet",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Vite plugin that generates a spritesheet and types out of your icons folder.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -19,15 +19,15 @@
   "exports": {
     ".": {
       "import": {
+        "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs",
-        "default": "./dist/index.mjs",
-        "types": "./dist/index.d.mts"
+        "default": "./dist/index.mjs"
       },
       "require": {
+        "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "require": "./dist/index.js",
-        "default": "./dist/index.js",
-        "types": "./dist/index.d.ts"
+        "default": "./dist/index.js"
       }
     }
   },
@@ -89,7 +89,7 @@
     "npm-run-all": "^4.1.5",
     "tsup": "^8.0.2",
     "typescript": "^5.4.5",
-    "vite": "5.2.11",
+    "vite": "6.0.0",
     "vitest": "^1.5.2"
   }
 }

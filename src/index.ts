@@ -1,14 +1,14 @@
 /*eslint-disable no-console */
 import { promises as fs } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { Biome, Distribution } from "@biomejs/js-api";
+import chalk from "chalk";
 import { glob } from "glob";
 import { parse } from "node-html-parser";
-import chalk from "chalk";
+import * as prettier from "prettier";
 import type { Plugin } from "vite";
 import { normalizePath } from "vite";
-import { mkdir } from "node:fs/promises";
-import { Biome, Distribution } from "@biomejs/js-api";
-import * as prettier from "prettier";
 
 type Formatter = "biome" | "prettier";
 
@@ -328,34 +328,35 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
           await iconGenerator();
         }
       },
-      // Augment the config with our own assetsInlineLimit function, we want to do this only once
-      async configResolved(config) {
-        if (i === 0) {
-          const subFunc =
-            typeof config.build.assetsInlineLimit === "function" ? config.build.assetsInlineLimit : undefined;
-          const limit = typeof config.build.assetsInlineLimit === "number" ? config.build.assetsInlineLimit : undefined;
-
-          config.build.assetsInlineLimit = (name, content) => {
-            const isSpriteSheet = allSpriteSheetNames.some((spriteSheetName) => {
-              return name.endsWith(normalizePath(`${outputDir}/${spriteSheetName}`));
-            });
-            // Our spritesheet? Early return
-            if (isSpriteSheet) {
-              return false;
-            }
-            // User defined limit? Check if it's smaller than the limit
-            if (limit) {
-              const size = content.byteLength;
-              return size <= limit;
-            }
-            // User defined function? Run it
-            if (typeof subFunc === "function") {
-              return subFunc(name, content);
-            }
-
-            return undefined;
-          };
+      async config(config) {
+        if (!config.build || i > 0) {
+          return;
         }
+        const subFunc =
+          typeof config.build.assetsInlineLimit === "function" ? config.build.assetsInlineLimit : undefined;
+        const limit = typeof config.build.assetsInlineLimit === "number" ? config.build.assetsInlineLimit : undefined;
+
+        const assetsInlineLimitFunction = (name: string, content: Buffer) => {
+          const isSpriteSheet = allSpriteSheetNames.some((spriteSheetName) => {
+            return name.endsWith(normalizePath(`${outputDir}/${spriteSheetName}`));
+          });
+          // Our spritesheet? Early return
+          if (isSpriteSheet) {
+            return false;
+          }
+          // User defined limit? Check if it's smaller than the limit
+          if (limit) {
+            const size = content.byteLength;
+            return size <= limit;
+          }
+          // User defined function? Run it
+          if (typeof subFunc === "function") {
+            return subFunc(name, content);
+          }
+
+          return undefined;
+        };
+        config.build.assetsInlineLimit = assetsInlineLimitFunction;
       },
     } satisfies Plugin<unknown>;
   });
