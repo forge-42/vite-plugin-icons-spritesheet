@@ -2,4 +2,3 @@
 
 export const iconNames = ["Test", "Test copy", "De", "C", "B", "A"] as const
 
-export type IconName = (typeof iconNames)[number]

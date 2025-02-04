@@ -201,14 +201,13 @@ async function lintFileContent(fileContent: string, formatter: Formatter | undef
   stdinStream.push(null);
 
   const { process } = exec(formatter, options, {});
-  if (!process?.stdin) {
-    console.error("no process");
-    return "";
+  if (!process?.stdin) { 
+    return fileContent;
   }
   stdinStream.pipe(process.stdin);
   process.stderr?.pipe(stderr);
-  process.on("error", (error) => {
-    console.error(error);
+  process.on("error", ( ) => { 
+    return fileContent
   });
   const formattedContent = await new Promise<string>((resolve) => {
     process.stdout?.on("data", (data) => {
@@ -218,12 +217,12 @@ async function lintFileContent(fileContent: string, formatter: Formatter | undef
       resolve(data.toString());
     });
   });
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<string>((resolve) => {
     process.on("exit", (code) => {
       if (code === 0) {
         resolve(formattedContent);
       } else {
-        reject(new Error(`${formatter} failed`));
+        resolve(fileContent);
       }
     });
   });
