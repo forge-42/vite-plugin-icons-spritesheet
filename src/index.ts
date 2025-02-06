@@ -201,7 +201,7 @@ async function lintFileContent(fileContent: string, formatter: Formatter | undef
   stdinStream.pipe(process.stdin);
   process.stderr?.pipe(stderr);
   process.on("error", (err) => {
-    console.error(`Error running formatter process: ${err.message}`);
+    //console.error(`Error running formatter process: ${err.message}`);
   });
 
   let formattedContent = "";
