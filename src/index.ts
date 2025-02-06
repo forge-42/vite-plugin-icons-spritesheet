@@ -45,7 +45,7 @@ interface PluginProps {
    * @default no formatter
    * @example "biome"
    */
-  formatter?: Formatter; 
+  formatter?: Formatter;
   /**
    * The cwd, defaults to process.cwd()
    * @default process.cwd()
@@ -115,6 +115,7 @@ function fileNameToCamelCase(fileName: string): string {
   const capitalizedWords = words.map((word) => word.charAt(0).toUpperCase() + word.slice(1));
   return capitalizedWords.join("");
 }
+
 /**
  * Creates a single SVG file that contains all the icons
  */
@@ -158,7 +159,7 @@ async function generateSvgSprite({
       svg.removeAttribute("width");
       svg.removeAttribute("height");
       return svg.toString().trim();
-    }),
+    })
   );
   const output = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -173,7 +174,7 @@ async function generateSvgSprite({
   return writeIfChanged(
     outputPath,
     formattedOutput,
-    `🖼️  Generated SVG spritesheet in ${chalk.green(outputDirRelative)}`,
+    `🖼️  Generated SVG spritesheet in ${chalk.green(outputDirRelative)}`
   );
 }
 
@@ -194,21 +195,18 @@ async function lintFileContent(fileContent: string, formatter: Formatter | undef
   stdinStream.push(null);
 
   const { process } = exec(formatter, options, {});
-  if (!process?.stdin) { 
+  if (!process?.stdin) {
     return fileContent;
   }
   stdinStream.pipe(process.stdin);
   process.stderr?.pipe(stderr);
-  process.on("error", ( ) => { 
-    return fileContent
+  process.on("error", (err) => {
+    console.error(`Error running formatter process: ${err.message}`);
   });
-  const formattedContent = await new Promise<string>((resolve) => {
-    process.stdout?.on("data", (data) => {
-      resolve(data.toString());
-    });
-    process.stderr?.on("data", (data) => {
-      resolve(data.toString());
-    });
+
+  let formattedContent = "";
+  process.stdout?.on("data", (data) => {
+    formattedContent = formattedContent + data.toString();
   });
   return new Promise<string>((resolve) => {
     process.on("exit", (code) => {
@@ -242,7 +240,7 @@ async function generateTypes({
   const file = await writeIfChanged(
     outputPath,
     formattedOutput,
-    `${chalk.blueBright("TS")} Generated icon types in ${chalk.green(outputPath)}`,
+    `${chalk.blueBright("TS")} Generated icon types in ${chalk.green(outputPath)}`
   );
   return file;
 }
@@ -270,16 +268,7 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
   const configs = Array.isArray(maybeConfigs) ? maybeConfigs : [maybeConfigs];
   const allSpriteSheetNames = configs.map((config) => config.fileName ?? "sprite.svg");
   return configs.map((config, i) => {
-    const {
-      withTypes,
-      inputDir,
-      outputDir,
-      typesOutputFile,
-      fileName,
-      cwd,
-      iconNameTransformer,
-      formatter, 
-    } = config;
+    const { withTypes, inputDir, outputDir, typesOutputFile, fileName, cwd, iconNameTransformer, formatter } = config;
     const iconGenerator = async () =>
       generateIcons({
         withTypes,
@@ -290,7 +279,7 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
         iconNameTransformer,
         formatter,
       });
-    
+
     const workDir = cwd ?? process.cwd();
     return {
       name: `icon-spritesheet-generator${i > 0 ? i.toString() : ""}`,
