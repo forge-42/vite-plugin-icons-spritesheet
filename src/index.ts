@@ -310,9 +310,12 @@ export const iconsSpritesheet: (args: PluginProps | PluginProps[]) => any = (may
         }
       },
       async config(config) {
-        if (!config.build || i > 0) {
+        if (i > 0) {
           return;
         }
+
+        config.build = config.build ?? {};
+
         const subFunc =
           typeof config.build.assetsInlineLimit === "function" ? config.build.assetsInlineLimit : undefined;
         const limit = typeof config.build.assetsInlineLimit === "number" ? config.build.assetsInlineLimit : undefined;
