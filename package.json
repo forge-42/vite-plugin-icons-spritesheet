@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-icons-spritesheet",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Vite plugin that generates a spritesheet and types out of your icons folder.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
