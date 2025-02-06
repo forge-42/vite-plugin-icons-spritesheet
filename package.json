@@ -67,9 +67,9 @@
   ],
   "homepage": "https://github.com/forge42dev/vite-plugin-icons-spritesheet#readme",
   "dependencies": {
+    "@xmldom/xmldom": "^0.9.6",
     "chalk": "^5.4.1",
     "glob": "^11.0.1",
-    "node-html-parser": "^7.0.1",
     "tinyexec": "^0.3.2"
   },
   "peerDependencies": {
